@@ -13,13 +13,59 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Extract ZIP and fix package.json
+      - name: Extract ZIP and prepare project files
         run: |
           for z in *.zip; do
             if [ -f "$z" ]; then
               unzip -oq "$z" -x ".github/*"
             fi
           done
+
+          if [ ! -d "src" ]; then
+            SUBDIR=$(find . -maxdepth 2 -type d -name "src" | head -n 1 | xargs dirname)
+            if [ -n "$SUBDIR" ] && [ "$SUBDIR" != "." ]; then
+              cp -rf "$SUBDIR"/* .
+            fi
+          fi
+
+          cat << 'EOF' > index.html
+          <!doctype html>
+          <html lang="uz">
+            <head>
+              <meta charset="UTF-8" />
+              <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+              <title>ISO 2553 & 6947 Welding Guide</title>
+            </head>
+            <body class="bg-slate-900 text-slate-100 select-none">
+              <div id="root"></div>
+              <script type="module" src="/src/main.jsx"></script>
+            </body>
+          </html>
+          EOF
+
+          cat << 'EOF' > vite.config.js
+          import { defineConfig } from 'vite';
+          import react from '@vitejs/plugin-react';
+          export default defineConfig({ plugins: [react()], base: './' });
+          EOF
+
+          cat << 'EOF' > tailwind.config.js
+          export default { content: ["./index.html", "./src/**/*.{js,jsx}"], theme: { extend: {} }, plugins: [] };
+          EOF
+
+          cat << 'EOF' > postcss.config.js
+          export default { plugins: { tailwindcss: {}, autoprefixer: {} } };
+          EOF
+
+          cat << 'EOF' > capacitor.config.json
+          {
+            "appId": "uz.welding.isostandards",
+            "appName": "ISO 2553 & 6947 Сварка",
+            "webDir": "dist",
+            "bundledWebRuntime": false
+          }
+          EOF
+
           cat << 'EOF' > package.json
           {
             "name": "iso-welding-guide",
@@ -46,6 +92,9 @@ jobs:
             }
           }
           EOF
+
+          ls -la
+          ls -la src/
 
       - name: Setup Node.js
         uses: actions/setup-node@v4

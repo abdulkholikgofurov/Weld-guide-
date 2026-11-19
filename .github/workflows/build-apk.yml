@@ -17,9 +17,10 @@ jobs:
         run: |
           for z in *.zip; do
             if [ -f "$z" ]; then
-              unzip -o "$z"
+              unzip -oq "$z" -x ".github/*"
             fi
           done
+         
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
